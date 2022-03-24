@@ -92,7 +92,8 @@ def AMD_perm(A):
 
 
 def dfs_search(A):
-    # returns all permuted versions of A whose Cholesky factors have all ones on the diagonal
+    # returns permutations P of A such that the Cholesky factors of PAP^T have ones on the diagonal. Uses a depth-first
+    # search
 
     n = np.shape(A)[0]
 
