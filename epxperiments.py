@@ -1,3 +1,12 @@
+import numpy as np
+import time
+
+from matplotlib import pyplot as plt
+
+from methods import dags_from_dfs, dag_from_ltr
+from utils import random_dag
+
+
 def recovered_dfs_dag_count(n, N, spar, method):
     # counts the number of permutation matrices that dags_from_dfs successfully recovers
     # arguments:
@@ -33,7 +42,6 @@ def recovered_ltr_dag_count(n, N, spar):
     # N: number of samples
     # spar: sparsity of the upper triangular part of the upper triangular DAG adjacency matrix
     count = 0
-    ambiguous_count = 0
     for i in range(N):
         U = random_dag(n, spar)  # generates a random upper triangular matrix A
         rand_perm = np.random.permutation(n)
@@ -47,6 +55,10 @@ def recovered_ltr_dag_count(n, N, spar):
             count += 1
 
     return 'successfully recovered ' + str(count) + ' out of ' + str(N) + ' DAGs'
+
+
+def dags_from_invcov(invcov):
+    pass
 
 
 def ltr_vs_dfs_speed(dims, N, spar):
