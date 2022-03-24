@@ -90,3 +90,30 @@ def ltr_vs_dfs_speed(dims, N, spar):
     plt.plot(dims, ltr_times, 'r')
     plt.plot(dims, dfs_times, 'b')
     plt.show()
+
+
+def speed_of_method(dims, N, spar, method):
+    # compare speeds of method (dag_from_ltr or dags_from_dfs) over different dimensions
+    times = []
+
+    for dim in dims:
+        dim_times = []
+
+        for i in range(N):
+            U = random_dag(dim, spar)  # generates a random upper triangular matrix A
+            rand_perm = np.random.permutation(dim)
+            P = np.eye(dim)
+            P[list(range(dim))] = P[list(rand_perm)]
+            A = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
+            invcov = np.transpose(np.eye(dim) - A) @ (np.eye(dim) - A)
+
+            start1 = time.time()
+            method(invcov)
+            end1 = time.time() - start1
+            dim_times.append(end1)
+
+        times.append(np.mean(dim_times))
+
+    plt.plot(dims, times)
+    plt.show()
+    print(np.sum(times))
