@@ -7,7 +7,7 @@ from methods import dags_from_dfs, dag_from_ltr
 from utils import random_dag
 
 
-def recovered_dfs_dag_count(n, N, spar, method):
+def recovered_dfs_dag_count(n, N, spar):
     # counts the number of permutation matrices that dags_from_dfs successfully recovers
     # arguments:
     # n: dimension of the DAGs considered (number of nodes)
@@ -57,10 +57,6 @@ def recovered_ltr_dag_count(n, N, spar):
     return 'successfully recovered ' + str(count) + ' out of ' + str(N) + ' DAGs'
 
 
-def dags_from_invcov(invcov):
-    pass
-
-
 def ltr_vs_dfs_speed(dims, N, spar):
     # compare speeds of ltr and dfs
     ltr_times = []
@@ -84,7 +80,7 @@ def ltr_vs_dfs_speed(dims, N, spar):
             ltr_dim_times.append(end1)
 
             start2 = time.time()
-            dags_from_invcov(invcov)
+            dags_from_dfs(invcov)
             end2 = time.time() - start2
             dfs_dim_times.append(end2)
 
