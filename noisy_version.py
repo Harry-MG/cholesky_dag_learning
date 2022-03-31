@@ -10,7 +10,8 @@ rand_perm = np.random.permutation(n)
 P = np.eye(n)
 P[list(range(n))] = P[list(rand_perm)]
 dag = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
-noise_cov = np.diag(np.random.rand(n))  # diagonal as in the setup in Uhler paper
+noise_cov = .1*np.diag(np.random.rand(n))  # diagonal as in the setup in Uhler paper
+true_invcov = (np.eye(n) - dag).T @ np.linalg.inv(noise_cov) @ (np.eye(n) - dag)
 
 
 def sample_inverse_covariance(dag, noise_cov, N):

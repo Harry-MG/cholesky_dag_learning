@@ -2,6 +2,7 @@
 import numpy as np
 
 from methods import dag_from_ltr
+from utils import random_dag
 
 
 def random_nb_dag(dim, sparsity):
@@ -21,3 +22,183 @@ def random_nb_dag(dim, sparsity):
 
     return A
 
+
+def dfs_search(A):
+    # returns permutations P of A such that the Cholesky factors of PAP^T have ones on the diagonal. Uses a depth-first
+    # search
+
+    n = np.shape(A)[0]
+
+    i = 0
+
+    # use a copy version of A to avoid changing A while running the function
+    A_copy = np.copy(A)
+
+    # perm = np.eye(n)
+
+    current = [[A_copy, np.eye(n)]]
+
+    while i < n:
+
+        new_current = []
+
+        for pair in current:
+
+            # get the indices of the rows that are in position i or greater and that have 1 on the diagonal
+            eligible_rows = [j for j in range(i, n) if pair[0][j, j] == 1]
+
+            # only proceed when B has at least one eligible row
+            if eligible_rows:
+
+                for ind in eligible_rows:
+
+                    B_copy = np.copy(pair[0])
+
+                    perm_copy = np.copy(pair[1])
+
+                    # swap the rows to put desired row in pivot row
+                    B_copy[[i, ind]] = B_copy[[ind, i]]
+
+                    # swap the corresponding columns
+                    B_copy[:, [i, ind]] = B_copy[:, [ind, i]]
+
+                    # update the permutation matrix associated to the current tree
+                    this_perm = np.eye(n)
+                    this_perm[[i, ind]] = this_perm[[ind, i]]
+                    perm_copy = this_perm @ perm_copy
+
+                    # note that B[i, i] = 1 != 0 so it's never necessary to move on to the next row prematurely.
+                    # gaussian elimination step
+                    for j in range(i + 1, n):
+
+                        f = B_copy[j, i] / B_copy[i, i]
+
+                        B_copy[j, i] = 0
+
+                        for k in range(i + 1, n):
+                            B_copy[j, k] = B_copy[j, k] - B_copy[i, k] * f
+
+                    # append B to current_matrices
+                    new_current.append([B_copy, perm_copy])
+
+        # move on to the next row
+        i += 1
+
+        # update current matrices and permutations
+        current = new_current
+
+    eligible_perms = [pair[1] for pair in current]
+
+    return eligible_perms
+
+
+def child_matrix(matrix, ind, depth):
+    n = np.shape(matrix)[0]
+    i = depth
+    copy = np.copy(matrix)
+
+    # swap the rows to put desired row in pivot row
+    copy[[i, ind]] = copy[[ind, i]]
+
+    # swap the corresponding columns
+    copy[:, [i, ind]] = copy[:, [ind, i]]
+
+    # note that copy[i, i] = 1 != 0 so it's never necessary to move on to the next row prematurely.
+    # gaussian elimination step
+    for j in range(i + 1, n):
+
+        f = copy[j, i] / copy[i, i]
+
+        copy[j, i] = 0
+
+        for k in range(i + 1, n):
+            copy[j, k] = copy[j, k] - copy[i, k] * f
+
+    return copy
+
+
+class Node:
+    def __init__(self, matrix, children, parent, permutation=None):
+        self.matrix = matrix
+        self.children = children
+        self.parent = parent
+        self.permutation = permutation
+
+
+def ltr_search(invcov):
+    n = np.shape(invcov)[0]
+    depth = 0  # need to track depth in tree as we need to complete n passes of the matrix
+    initial_children = [j for j in range(depth, n) if invcov[j, j] == 1]
+    # initialise node instance
+    node = Node(matrix=invcov, children=initial_children, parent=None, permutation=np.eye(n))
+    while depth < n-1:
+        if node.children:
+            # update children to exclude first child and pass to first child, increase depth by 1
+            index = node.children[0]
+
+            # update the permutation matrix
+            this_perm = np.eye(n)
+            this_perm[[depth, index]] = this_perm[[index, depth]]
+            new_perm = this_perm @ node.permutation
+
+            # update the matrix and children attributes
+            parent_children = node.children[1:]
+            node.children = parent_children
+            new_matrix = child_matrix(node.matrix, index, depth)
+
+            depth += 1
+
+            new_children = [j for j in range(depth, n) if new_matrix[j, j] == 1]
+
+            # update the parent attribute
+            new_parent = node
+
+            node = Node(matrix=new_matrix, children=new_children, parent=new_parent, permutation=new_perm)
+
+        else:
+            # go back to previous node and decrease depth by 1
+            node = node.parent
+            depth -= 1
+    return node
+
+
+n = 5
+spar = .7
+U = random_nb_dag(n, spar)  # generates a random upper triangular matrix A
+rand_perm = np.random.permutation(n)
+P = np.eye(n)
+P[list(range(n))] = P[list(rand_perm)]
+A = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
+invcov = np.transpose(np.eye(n) - A) @ (np.eye(n) - A)
+
+
+def dag_from_ltr(invcov):
+    # input: inverse covariance matrix
+    # output: estimated DAG adjacency matrix A such that invcov = (I-A)^T (I-A)
+    n = np.shape(invcov)[0]
+    perm = ltr_search(invcov).permutation
+    estimate = np.eye(n) - perm.T @ np.linalg.cholesky(perm @ invcov @ perm.T).T @ perm
+
+    return estimate
+
+
+def recovered_ltr_nb_dag_count(n, N, spar):
+    # counts the number of permutation matrices that the dag_from_ltr method successfully recovers
+    # arguments:
+    # n: dimension of the DAGs considered (number of nodes)
+    # N: number of samples
+    # spar: sparsity of the upper triangular part of the upper triangular DAG adjacency matrix
+    count = 0
+    for i in range(N):
+        U = random_nb_dag(n, spar)  # generates a random upper triangular matrix A
+        rand_perm = np.random.permutation(n)
+        P = np.eye(n)
+        P[list(range(n))] = P[list(rand_perm)]
+        A = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
+        invcov = np.transpose(np.eye(n) - A) @ (np.eye(n) - A)
+        eligible_mat = dag_from_ltr(invcov)
+
+        if (eligible_mat == A).all():
+            count += 1
+
+    return 'successfully recovered ' + str(count) + ' out of ' + str(N) + ' non-binary DAGs'
