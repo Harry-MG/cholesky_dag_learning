@@ -128,11 +128,22 @@ class Node:
 def ltr_search(invcov):
     n = np.shape(invcov)[0]
     depth = 0  # need to track depth in tree as we need to complete n passes of the matrix
-    initial_children = [j for j in range(depth, n) if invcov[j, j] == 1]
+    initial_children = [j for j in range(n) if invcov[j, j] == 1]
     # initialise node instance
     node = Node(matrix=invcov, children=initial_children, parent=None, permutation=np.eye(n))
-    while depth < n-1:
-        if node.children:
+    while depth < n-1 and np.sum(np.diag(node.matrix)) > n:  # use > n because the diag elements are > 1 unless...
+        print(node.matrix)
+        print('depth = ' + str(depth))
+        print('children = ' + str(node.children))
+        print(node.matrix[depth, depth])
+
+        if np.abs(node.matrix[depth, depth] - 1) < 1e-4:
+            # pass to next depth
+            depth += 1
+            node.children = node.children[1:]
+            print('pass through')
+
+        elif node.children:
             # update children to exclude first child and pass to first child, increase depth by 1
             index = node.children[0]
 
@@ -148,7 +159,7 @@ def ltr_search(invcov):
 
             depth += 1
 
-            new_children = [j for j in range(depth, n) if new_matrix[j, j] == 1]
+            new_children = [j for j in range(depth, n) if np.abs(new_matrix[j, j] - 1) < 1e-4]
 
             # update the parent attribute
             new_parent = node
