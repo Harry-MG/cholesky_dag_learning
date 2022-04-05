@@ -9,11 +9,7 @@ def random_nb_dag(dim, sparsity):
     # generates random  non-binary upper triangular matrix with given upper triangular sparsity, representing the
     # weighted adjacency matrix of a DAG
 
-    A = np.random.rand(dim, dim)  # might want to range the matrix entries in [.1, .9] for example
-
-    A = A + (0.1/(0.9 - 0.1))*np.ones((dim, dim))
-
-    A = A * (0.9 - 0.1)
+    A = np.random.rand(dim, dim)  # might want to range the matrix entries in [.2, .8] for example
 
     zero_indices = np.random.choice(np.arange(A.size), replace=False,
                                     size=int(A.size * sparsity))
@@ -217,13 +213,6 @@ def recovered_ltr_nb_dag_count(n, N, spar):
         if ((eligible_mat - A) < 1e-3).all():
             count += 1
 
-        else:
-            print('True DAG')
-            print(A)
-            print('-------------------------------------')
-            print('Incorrect estimate')
-            print(eligible_mat)
-
     return 'successfully recovered ' + str(count) + ' out of ' + str(N) + ' non-binary DAGs'
 
 
@@ -271,7 +260,7 @@ def close_to_avg(list_of_matrices, tol=1e-4):
     if max(diffs) < tol:
         return avg_mat
     else:
-        return list_of_matrices
+        return 'distinct DAGs returned'
 
 
 n = 5
@@ -285,13 +274,8 @@ print('true DAG')
 print(A)
 print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 invcov = np.transpose(np.eye(n) - A) @ (np.eye(n) - A)
-dags = nb_dags_from_dfs(invcov)
-if len(dags) == n:
-    mat = dags
-    print(mat)
-    print(((mat - A) < 1e-4).all())
-    print('---------------------------------------------')
-else:
-    print(False)
-    print(dags)
+mat = nb_dags_from_dfs(invcov)
+print(mat)
+print(((mat - A) < 1e-4).all())
+print('---------------------------------------------')
 
