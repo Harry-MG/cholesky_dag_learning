@@ -1,10 +1,11 @@
+# sketch of non-binary (dag non-binary) version
 import numpy as np
 
 from methods import dag_from_ltr
 from utils import random_dag, remove_duplicate_matrices
 
 
-def random_weighted_dag(dim, sparsity):
+def random_nb_dag(dim, sparsity):
     # generates random  non-binary upper triangular matrix with given upper triangular sparsity, representing the
     # weighted adjacency matrix of a DAG
 
@@ -175,7 +176,7 @@ def ltr_search(invcov):
 
 n = 5
 spar = .7
-U = random_weighted_dag(n, spar)  # generates a random upper triangular matrix A
+U = random_nb_dag(n, spar)  # generates a random upper triangular matrix A
 rand_perm = np.random.permutation(n)
 P = np.eye(n)
 P[list(range(n))] = P[list(rand_perm)]
@@ -193,7 +194,7 @@ def dag_from_ltr(invcov):
     return estimate
 
 
-def recovered_ltr_weighted_dag_count(n, N, spar):
+def recovered_ltr_nb_dag_count(n, N, spar):
     # counts the number of permutation matrices that the dag_from_ltr method successfully recovers
     # arguments:
     # n: dimension of the DAGs considered (number of nodes)
@@ -201,7 +202,7 @@ def recovered_ltr_weighted_dag_count(n, N, spar):
     # spar: sparsity of the upper triangular part of the upper triangular DAG adjacency matrix
     count = 0
     for i in range(N):
-        U = random_weighted_dag(n, spar)  # generates a random upper triangular matrix A
+        U = random_nb_dag(n, spar)  # generates a random upper triangular matrix A
         rand_perm = np.random.permutation(n)
         P = np.eye(n)
         P[list(range(n))] = P[list(rand_perm)]
@@ -215,7 +216,7 @@ def recovered_ltr_weighted_dag_count(n, N, spar):
     return 'successfully recovered ' + str(count) + ' out of ' + str(N) + ' non-binary DAGs'
 
 
-def weighted_dags_from_dfs(invcov):
+def nb_dags_from_dfs(invcov):
     # input: inverse covariance matrix
     # output: estimated DAG adjacency matrices A such that invcov = (I-A)^T (I-A)
     n = np.shape(invcov)[0]
@@ -225,7 +226,7 @@ def weighted_dags_from_dfs(invcov):
     return close_to_avg(estimates)
 
 
-def recovered_dfs_weighted_dag_count(n, N, spar):
+def recovered_dfs_nb_dag_count(n, N, spar):
     # counts the number of permutation matrices that dags_from_dfs successfully recovers
     # arguments:
     # n: dimension of the DAGs considered (number of nodes)
@@ -234,13 +235,13 @@ def recovered_dfs_weighted_dag_count(n, N, spar):
     count = 0
     ambiguous_count = 0
     for i in range(N):
-        U = random_weighted_dag(n, spar)  # generates a random upper triangular matrix A
+        U = random_nb_dag(n, spar)  # generates a random upper triangular matrix A
         rand_perm = np.random.permutation(n)
         P = np.eye(n)
         P[list(range(n))] = P[list(rand_perm)]
         A = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
         invcov = np.transpose(np.eye(n) - A) @ (np.eye(n) - A)
-        eligible_mats = weighted_dags_from_dfs(invcov)
+        eligible_mats = nb_dags_from_dfs(invcov)
 
         if len(eligible_mats) > 1:
             ambiguous_count += 1
@@ -264,7 +265,7 @@ def close_to_avg(list_of_matrices, tol=1e-4):
 
 n = 5
 spar = .7
-U = random_weighted_dag(n, spar)  # generates a random upper triangular matrix A
+U = random_nb_dag(n, spar)  # generates a random upper triangular matrix A
 rand_perm = np.random.permutation(n)
 P = np.eye(n)
 P[list(range(n))] = P[list(rand_perm)]
@@ -273,7 +274,7 @@ print('true DAG')
 print(A)
 print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 invcov = np.transpose(np.eye(n) - A) @ (np.eye(n) - A)
-mat = weighted_dags_from_dfs(invcov)
+mat = nb_dags_from_dfs(invcov)
 print(mat)
 print(((mat - A) < 1e-4).all())
 print('---------------------------------------------')
