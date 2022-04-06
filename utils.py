@@ -91,7 +91,7 @@ def AMD_perm(A):
     return perm
 
 
-def dfs_search(A):
+def dfs_search(A):  # note - rewrite this function with the Node class instead of list pairs
     # returns permutations P of A such that the Cholesky factors of PAP^T have ones on the diagonal. Uses a depth-first
     # search
 
@@ -102,8 +102,7 @@ def dfs_search(A):
     # use a copy version of A to avoid changing A while running the function
     A_copy = np.copy(A)
 
-    # perm = np.eye(n)
-
+    # initialise [matrix, permutation] pair
     current = [[A_copy, np.eye(n)]]
 
     while i < n:
@@ -204,11 +203,11 @@ def child_matrix(matrix, ind, depth):
     return copy
 
 
-def ltr_search(invcov):
+def ltr_search(invcov):  # note - could speed up by stopping early when the diagonal is all one
     n = np.shape(invcov)[0]
     depth = 0  # need to track depth in tree as we need to complete n passes of the matrix
     initial_children = [j for j in range(depth, n) if invcov[j, j] == 1]
-    # initialise node instance
+    # initialise node instance with the inverse covariance matrix
     node = Node(matrix=invcov, children=initial_children, parent=None, permutation=np.eye(n))
     while depth < n:
         if node.children:
@@ -229,7 +228,7 @@ def ltr_search(invcov):
 
             new_children = [j for j in range(depth, n) if new_matrix[j, j] == 1]
 
-            # update the parent attribute
+            # update the parent attribute to be the previous node but with the current matrix removed from its children
             new_parent = node
 
             node = Node(matrix=new_matrix, children=new_children, parent=new_parent, permutation=new_perm)
