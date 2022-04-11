@@ -1,8 +1,4 @@
-# sketch of non-binary (dag non-binary) version
 import numpy as np
-
-from methods import dag_from_ltr
-from utils import random_dag, remove_duplicate_matrices
 
 
 def random_nb_dag(dim, sparsity):
@@ -11,7 +7,7 @@ def random_nb_dag(dim, sparsity):
 
     A = np.random.rand(dim, dim)  # might want to range the matrix entries in [.1, .9] for example
 
-    A = A + (0.1/(0.9 - 0.1))*np.ones((dim, dim))
+    A = A + (0.1 / (0.9 - 0.1)) * np.ones((dim, dim))
 
     A = A * (0.9 - 0.1)
 
@@ -27,9 +23,9 @@ def random_nb_dag(dim, sparsity):
     return A
 
 
-def dfs_search(A):
-    # returns permutations P of A such that the Cholesky factors of PAP^T have ones on the diagonal. Uses a depth-first
-    # search
+def weighted_bf_search(A):
+    # returns permutations P of A such that the Cholesky factors of PAP^T have ones on the diagonal. Uses a
+    # breadth-first search
 
     n = np.shape(A)[0]
 
@@ -129,7 +125,7 @@ class Node:
         self.permutation = permutation
 
 
-def ltr_search(invcov):
+def weighted_df_search(invcov):
     n = np.shape(invcov)[0]
     depth = 0  # need to track depth in tree as we need to complete n passes of the matrix
     initial_children = [j for j in range(n) if invcov[j, j] == 1]
@@ -188,18 +184,18 @@ A = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topolog
 invcov = np.transpose(np.eye(n) - A) @ (np.eye(n) - A)
 
 
-def dag_from_ltr(invcov):
+def dag_from_weighted_dfs(invcov):
     # input: inverse covariance matrix
     # output: estimated DAG adjacency matrix A such that invcov = (I-A)^T (I-A)
     n = np.shape(invcov)[0]
-    perm = ltr_search(invcov).permutation
+    perm = weighted_df_search(invcov).permutation
     estimate = np.eye(n) - perm.T @ np.linalg.cholesky(perm @ invcov @ perm.T).T @ perm
 
     return estimate
 
 
-def recovered_ltr_nb_dag_count(n, N, spar):
-    # counts the number of permutation matrices that the dag_from_ltr method successfully recovers
+def recovered_weighted_dfs_nb_dag_count(n, N, spar):
+    # counts the number of permutation matrices that the weighted_dag_from_dfs method successfully recovers
     # arguments:
     # n: dimension of the DAGs considered (number of nodes)
     # N: number of samples
@@ -212,7 +208,7 @@ def recovered_ltr_nb_dag_count(n, N, spar):
         P[list(range(n))] = P[list(rand_perm)]
         A = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
         invcov = np.transpose(np.eye(n) - A) @ (np.eye(n) - A)
-        eligible_mat = dag_from_ltr(invcov)
+        eligible_mat = dag_from_weighted_dfs(invcov)
 
         if ((eligible_mat - A) < 1e-3).all():
             count += 1
@@ -227,18 +223,18 @@ def recovered_ltr_nb_dag_count(n, N, spar):
     return 'successfully recovered ' + str(count) + ' out of ' + str(N) + ' non-binary DAGs'
 
 
-def nb_dags_from_dfs(invcov):
+def dags_from_weighted_bfs(invcov):
     # input: inverse covariance matrix
     # output: estimated DAG adjacency matrices A such that invcov = (I-A)^T (I-A)
     n = np.shape(invcov)[0]
-    permutations = dfs_search(invcov)
+    permutations = weighted_bf_search(invcov)
     estimates = [np.eye(n) - perm.T @ np.linalg.cholesky(perm @ invcov @ perm.T).T @ perm for perm in permutations]
 
     return close_to_avg(estimates)
 
 
-def recovered_dfs_nb_dag_count(n, N, spar):
-    # counts the number of permutation matrices that dags_from_dfs successfully recovers
+def recovered_bfs_weighted_dag_count(n, N, spar):
+    # counts the number of permutation matrices that dags_from_weighted_bfs successfully recovers
     # arguments:
     # n: dimension of the DAGs considered (number of nodes)
     # N: number of samples
@@ -252,7 +248,7 @@ def recovered_dfs_nb_dag_count(n, N, spar):
         P[list(range(n))] = P[list(rand_perm)]
         A = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
         invcov = np.transpose(np.eye(n) - A) @ (np.eye(n) - A)
-        eligible_mats = nb_dags_from_dfs(invcov)
+        eligible_mats = dags_from_weighted_bfs(invcov)
 
         if len(eligible_mats) > 1:
             ambiguous_count += 1
@@ -285,7 +281,7 @@ print('true DAG')
 print(A)
 print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 invcov = np.transpose(np.eye(n) - A) @ (np.eye(n) - A)
-dags = nb_dags_from_dfs(invcov)
+dags = dags_from_weighted_bfs(invcov)
 if len(dags) == n:
     mat = dags
     print(mat)
@@ -294,4 +290,3 @@ if len(dags) == n:
 else:
     print(False)
     print(dags)
-

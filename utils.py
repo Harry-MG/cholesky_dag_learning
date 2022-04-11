@@ -31,69 +31,9 @@ def random_dag(dim, sparsity):
     return A
 
 
-def AMD_perm(A):
-    # returns a permutation matrix P which when applied to A as P A P^T exhibits reduced fill-in upon Cholesky
-    # factorization.
-
-    n = np.shape(A)[0]
-
-    i = 0
-
-    B = np.copy(A)
-
-    perm = np.eye(n)
-
-    while i < n:
-
-        # make version of A with zero diagonal
-        zero_diag = B - np.diag(np.diag(B))
-
-        # consider only the rows that are in position i or greater
-        rows = [zero_diag[j, :] for j in range(i, n)]
-
-        offdiag_row_nonzeros = [nonzeros(v) for v in rows]
-
-        i_min = np.argmin(offdiag_row_nonzeros)
-
-        # actual index in A is
-        ind = i + i_min
-
-        # swap the rows to put sparsest row in pivot row
-        B[[i, ind]] = B[[ind, i]]
-
-        # swap the corresponding columns
-        B[:, [i, ind]] = B[:, [ind, i]]
-
-        # update the permutation matrix
-        this_perm = np.eye(n)
-        this_perm[[i, ind]] = this_perm[[ind, i]]
-        perm = this_perm @ perm
-
-        if B[i, i] == 0:
-            # go to next row if pivot is zero
-
-            i += 1
-
-        else:
-            # apply gaussian elimination
-
-            for j in range(i + 1, n):
-
-                f = B[j, i] / B[i, i]
-
-                B[j, i] = 0
-
-                for k in range(i + 1, n):
-                    B[j, k] = B[j, k] - B[i, k] * f
-
-            i += 1
-
-    return perm
-
-
-def dfs_search(A):  # note - rewrite this function with the Node class instead of list pairs
-    # returns permutations P of A such that the Cholesky factors of PAP^T have ones on the diagonal. Uses a depth-first
-    # search
+def bf_search(A):  # note - rewrite this function with the Node class instead of list pairs
+    # returns permutations P of A such that the Cholesky factors of PAP^T have ones on the diagonal. Uses a
+    # breadth-first search
 
     n = np.shape(A)[0]
 
@@ -204,7 +144,9 @@ def child_matrix(matrix, ind, depth):
     return copy
 
 
-def ltr_search(invcov):  # note - could speed up by stopping early when the diagonal is all ones
+def df_search(invcov):  # note - could speed up by stopping early when the diagonal is all ones
+    # returns Node class whose permutation attribute P such that the Cholesky factor of P@invcov@P.T has ones on its
+    # diagonal. Uses a depth-first search.
     n = np.shape(invcov)[0]
     depth = 0  # need to track depth in tree as we need to complete n passes of the matrix
     initial_children = [j for j in range(depth, n) if invcov[j, j] == 1]

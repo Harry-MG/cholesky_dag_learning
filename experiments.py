@@ -3,12 +3,12 @@ import time
 
 from matplotlib import pyplot as plt
 
-from methods import dags_from_dfs, dag_from_ltr
+from methods import dags_from_bfs, dag_from_dfs
 from utils import random_dag
 
 
-def recovered_dfs_dag_count(n, N, spar):
-    # counts the number of permutation matrices that dags_from_dfs successfully recovers
+def recovered_bfs_dag_count(n, N, spar):
+    # counts the number of permutation matrices that dags_from_bfs successfully recovers
     # arguments:
     # n: dimension of the DAGs considered (number of nodes)
     # N: number of samples
@@ -22,7 +22,7 @@ def recovered_dfs_dag_count(n, N, spar):
         P[list(range(n))] = P[list(rand_perm)]
         A = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
         invcov = np.transpose(np.eye(n) - A) @ (np.eye(n) - A)
-        eligible_mats = dags_from_dfs(invcov)
+        eligible_mats = dags_from_bfs(invcov)
 
         if len(eligible_mats) > 1:
             ambiguous_count += 1
@@ -36,7 +36,7 @@ def recovered_dfs_dag_count(n, N, spar):
 
 
 def recovered_ltr_dag_count(n, N, spar):
-    # counts the number of permutation matrices that the dag_from_ltr method successfully recovers
+    # counts the number of permutation matrices that the dag_from_dfs method successfully recovers
     # arguments:
     # n: dimension of the DAGs considered (number of nodes)
     # N: number of samples
@@ -49,7 +49,7 @@ def recovered_ltr_dag_count(n, N, spar):
         P[list(range(n))] = P[list(rand_perm)]
         A = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
         invcov = np.transpose(np.eye(n) - A) @ (np.eye(n) - A)
-        eligible_mat = dag_from_ltr(invcov)
+        eligible_mat = dag_from_dfs(invcov)
 
         if (eligible_mat == A).all():
             count += 1
@@ -58,7 +58,7 @@ def recovered_ltr_dag_count(n, N, spar):
 
 
 def ltr_vs_dfs_speed(dims, N, spar):
-    # compare speeds of ltr and dfs
+    # compare speeds of dfs and bfs
     ltr_times = []
     dfs_times = []
 
@@ -75,12 +75,12 @@ def ltr_vs_dfs_speed(dims, N, spar):
             invcov = np.transpose(np.eye(dim) - A) @ (np.eye(dim) - A)
 
             start1 = time.time()
-            dag_from_ltr(invcov)
+            dag_from_dfs(invcov)
             end1 = time.time() - start1
             ltr_dim_times.append(end1)
 
             start2 = time.time()
-            dags_from_dfs(invcov)
+            dags_from_bfs(invcov)
             end2 = time.time() - start2
             dfs_dim_times.append(end2)
 
@@ -93,7 +93,7 @@ def ltr_vs_dfs_speed(dims, N, spar):
 
 
 def speed_of_method(dims, N, spar, method):
-    # compare speeds of method (dag_from_ltr or dags_from_dfs) over different dimensions
+    # compare speeds of method (dag_from_dfs or dags_from_bfs) over different dimensions
     times = []
 
     for dim in dims:
