@@ -179,6 +179,7 @@ class Node:
 
 
 def child_matrix(matrix, ind, depth):
+    # swaps rows and columns ind, depth and applies gaussian elimination
     n = np.shape(matrix)[0]
     i = depth
     copy = np.copy(matrix)
@@ -203,7 +204,7 @@ def child_matrix(matrix, ind, depth):
     return copy
 
 
-def ltr_search(invcov):  # note - could speed up by stopping early when the diagonal is all one
+def ltr_search(invcov):  # note - could speed up by stopping early when the diagonal is all ones
     n = np.shape(invcov)[0]
     depth = 0  # need to track depth in tree as we need to complete n passes of the matrix
     initial_children = [j for j in range(depth, n) if invcov[j, j] == 1]
