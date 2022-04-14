@@ -67,14 +67,34 @@ def ldl_child_matrix(matrix, ind, depth):
     d = copy[i, i]
     copy[i, i] = 1
 
-    for j in range(i+1, n):
-        copy[i, j] = copy[i, j]/d
+    for j in range(i + 1, n):
+        copy[i, j] = copy[i, j] / d
 
-    for j in range(i+1, n):
-        for k in range(i+1, j):
-            copy[k, j] = copy[k, j] - copy[i, k]*copy[i, j]
+    for j in range(i + 1, n):
+        for k in range(i + 1, j):
+            copy[k, j] = copy[k, j] - copy[i, k] * copy[i, j]
 
     return copy
+
+
+def ldl_decomp(matrix):
+    dim = np.shape(matrix)[0]
+    copy = np.copy(matrix)
+    diag = np.zeros(dim)
+    for i in range(dim):
+
+        d = copy[i, i]
+        diag[i] = d
+        copy[i, i] = 1
+
+        for j in range(i + 1, dim):
+            copy[i, j] = copy[i, j] / d
+
+        for j in range(i + 1, dim):
+            for k in range(i + 1, j):
+                copy[k, j] = copy[k, j] - copy[i, k] * copy[i, j]
+
+    return [copy, diag]
 
 
 def noisy_df_search(invcov, pivots):
@@ -102,7 +122,8 @@ def noisy_df_search(invcov, pivots):
 
             depth += 1
 
-            new_children = [j for j in range(depth, n) if True in [(new_matrix[j, j] - pivot) < 1e-4 for pivot in pivots]]
+            new_children = [j for j in range(depth, n) if
+                            True in [(new_matrix[j, j] - pivot) < 1e-4 for pivot in pivots]]
             # new_pivots = [new_matrix[j] for j in new_children]
 
             # update the parent attribute to be the previous node but with the current matrix removed from its children
@@ -128,7 +149,7 @@ noise_cov = .1 * np.diag(np.random.rand(n))  # diagonal as in the setup in Uhler
 true_invcov = (np.eye(n) - dag).T @ np.linalg.inv(noise_cov) @ (np.eye(n) - dag)
 print('inverse covariance')
 print(true_invcov)
-pivots = 1/np.diag(noise_cov)
+pivots = 1 / np.diag(noise_cov)
 print('pivots')
 print(pivots)
 print('DAG')
