@@ -57,14 +57,14 @@ def recovered_ltr_dag_count(n, N, spar):
     return 'successfully recovered ' + str(count) + ' out of ' + str(N) + ' DAGs'
 
 
-def ltr_vs_dfs_speed(dims, N, spar):
+def dfs_vs_bfs_speed(dims, N, spar):
     # compare speeds of dfs and bfs
-    ltr_times = []
     dfs_times = []
+    bfs_times = []
 
     for dim in dims:
-        ltr_dim_times = []
         dfs_dim_times = []
+        bfs_dim_times = []
 
         for i in range(N):
             U = random_dag(dim, spar)  # generates a random upper triangular matrix A
@@ -77,18 +77,18 @@ def ltr_vs_dfs_speed(dims, N, spar):
             start1 = time.time()
             dag_from_dfs(invcov)
             end1 = time.time() - start1
-            ltr_dim_times.append(end1)
+            dfs_dim_times.append(end1)
 
             start2 = time.time()
             dags_from_bfs(invcov)
             end2 = time.time() - start2
-            dfs_dim_times.append(end2)
+            bfs_dim_times.append(end2)
 
-        ltr_times.append(np.mean(ltr_dim_times))
         dfs_times.append(np.mean(dfs_dim_times))
+        bfs_times.append(np.mean(bfs_dim_times))
 
-    plt.plot(dims, ltr_times, 'r')
-    plt.plot(dims, dfs_times, 'b')
+    plt.plot(dims, dfs_times, 'r')
+    plt.plot(dims, bfs_times, 'b')
     plt.show()
 
 
@@ -115,5 +115,7 @@ def speed_of_method(dims, N, spar, method):
         times.append(np.mean(dim_times))
 
     plt.plot(dims, times)
+    plt.xlabel('number of nodes')
+    plt.ylabel('average runtime (s) over ' + str(N) + ' samples')
     plt.show()
     print(np.sum(times))

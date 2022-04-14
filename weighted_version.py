@@ -207,6 +207,7 @@ def recovered_weighted_dfs_nb_dag_count(n, N, spar):
         P = np.eye(n)
         P[list(range(n))] = P[list(rand_perm)]
         A = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
+        print(A)
         invcov = np.transpose(np.eye(n) - A) @ (np.eye(n) - A)
         eligible_mat = dag_from_weighted_dfs(invcov)
 
@@ -220,7 +221,7 @@ def recovered_weighted_dfs_nb_dag_count(n, N, spar):
             print('Incorrect estimate')
             print(eligible_mat)
 
-    return 'successfully recovered ' + str(count) + ' out of ' + str(N) + ' non-binary DAGs'
+    return 'successfully recovered ' + str(count) + ' out of ' + str(N) + ' weighted DAGs'
 
 
 def dags_from_weighted_bfs(invcov):
@@ -242,7 +243,7 @@ def recovered_bfs_weighted_dag_count(n, N, spar):
     count = 0
     ambiguous_count = 0
     for i in range(N):
-        U = random_nb_dag(n, spar)  # generates a random upper triangular matrix A
+        U = random_nb_dag(n, spar)  # generates a random weighted upper triangular matrix A
         rand_perm = np.random.permutation(n)
         P = np.eye(n)
         P[list(range(n))] = P[list(rand_perm)]

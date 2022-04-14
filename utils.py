@@ -130,7 +130,7 @@ def child_matrix(matrix, ind, depth):
     # swap the corresponding columns
     copy[:, [i, ind]] = copy[:, [ind, i]]
 
-    # note that copy[i, i] = 1 != 0 so it's never necessary to move on to the next row prematurely.
+    # note that copy[i, i] != 0 so it's never necessary to move on to the next row prematurely.
     # gaussian elimination step
     for j in range(i + 1, n):
 
