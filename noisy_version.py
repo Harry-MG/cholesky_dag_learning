@@ -97,6 +97,26 @@ def ldl_decomp(matrix):
     return [copy, diag]
 
 
+def ldl(matrix):
+    dim = np.shape(matrix)[0]
+    copy = np.copy(matrix)
+    diag = np.zeros(dim)
+    for i in range(dim):
+
+        d = copy[i, i]
+        diag[i] = d
+        copy[i, i] = 1
+
+        for j in range(i + 1, dim):
+            copy[i, j] = copy[i, j] / d
+
+        for j in range(i + 1, dim):
+            for k in range(i + 1, dim):
+                copy[j, k] = copy[j, k] - copy[i, i] * copy[j, k]
+
+    return [copy, diag]
+
+
 def noisy_df_search(invcov, pivots):
     # returns Node class whose permutation attribute P such that the Cholesky factor of P@invcov@P.T has ones on its
     # diagonal. Uses a depth-first search.
