@@ -155,5 +155,7 @@ print('DAG')
 print(dag)
 print('df')
 ans = noisy_df_search(true_invcov, pivots)
-print(ans.matrix)
-print(ans.permutation)
+perm = ans.permutation
+est = np.eye(n) - perm.T @ ans.matrix @ perm
+print('estimate')
+print(est)
