@@ -159,3 +159,27 @@ perm = ans.permutation
 est = np.eye(n) - perm.T @ ans.matrix @ perm
 print('estimate')
 print(est)
+
+
+def recovered_dfs_noisy_dag_count(n, N, spar):
+    # counts the number of permutation matrices that the dag_from_dfs method successfully recovers
+    # arguments:
+    # n: dimension of the DAGs considered (number of nodes)
+    # N: number of samples
+    # spar: sparsity of the upper triangular part of the upper triangular DAG adjacency matrix
+    count = 0
+    for i in range(N):
+        U = random_dag(n, spar)  # generates a random upper triangular matrix A
+        rand_perm = np.random.permutation(n)
+        P = np.eye(n)
+        P[list(range(n))] = P[list(rand_perm)]
+        dag = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
+        noise_cov = .1 * np.diag(np.random.rand(n))  # diagonal as in the setup in Uhler paper
+        invcov = (np.eye(n) - dag).T @ np.linalg.inv(noise_cov) @ (np.eye(n) - dag)
+        pivots = 1 / np.diag(noise_cov)
+        eligible_mat = noisy_df_search(invcov, pivots)
+
+        if ((eligible_mat - dag) < 1e-4).all():
+            count += 1
+
+    return 'successfully recovered ' + str(count) + ' out of ' + str(N) + ' DAGs'
