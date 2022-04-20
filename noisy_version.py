@@ -137,6 +137,16 @@ def noisy_df_search(invcov, pivots):
     return node
 
 
+def noisy_dag_from_dfs(invcov, pivots):
+    # input: inverse covariance matrix
+    # output: estimated DAG adjacency matrix A such that invcov = (I-A)^T (I-A)
+    n = np.shape(invcov)[0]
+    perm = noisy_df_search(invcov, pivots).permutation
+    estimate = np.eye(n) - perm.T @ ans.matrix @ perm
+
+    return estimate
+
+
 n = 5
 spar = .75
 U = random_dag(n, spar)  # generates a random upper triangular matrix A
@@ -177,7 +187,7 @@ def recovered_dfs_noisy_dag_count(n, N, spar):
         noise_cov = .1 * np.diag(np.random.rand(n))  # diagonal as in the setup in Uhler paper
         invcov = (np.eye(n) - dag).T @ np.linalg.inv(noise_cov) @ (np.eye(n) - dag)
         pivots = 1 / np.diag(noise_cov)
-        eligible_mat = noisy_df_search(invcov, pivots)
+        eligible_mat = noisy_dag_from_dfs(invcov, pivots)
 
         if ((eligible_mat - dag) < 1e-4).all():
             count += 1
