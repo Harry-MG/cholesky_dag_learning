@@ -54,9 +54,9 @@ class Node:
 
 def ldl_child_matrix(matrix, ind, depth):
     # swaps rows and columns ind, depth and applies gaussian elimination
-    n = np.shape(matrix)[0]
+    dim = np.shape(matrix)[0]
     i = depth
-    copy = np.copy(matrix)
+    copy = np.copy(matrix).astype(float)
 
     # swap the rows to put desired row in pivot row
     copy[[i, ind]] = copy[[ind, i]]
@@ -65,55 +65,34 @@ def ldl_child_matrix(matrix, ind, depth):
     copy[:, [i, ind]] = copy[:, [ind, i]]
 
     d = copy[i, i]
-    copy[i, i] = 1
 
-    for j in range(i + 1, n):
-        copy[i, j] = copy[i, j] / d
+    copy[i] = copy[i] / d
 
-    for j in range(i + 1, n):
-        for k in range(i + 1, j):
-            copy[k, j] = copy[k, j] - copy[i, k] * copy[i, j]
+    for j in range(i + 1, dim):
+        copy[j] = copy[j] - copy[j, i] * copy[i]
 
     return copy
 
 
-def ldl_decomp(matrix):
-    dim = np.shape(matrix)[0]
-    copy = np.copy(matrix)
-    diag = np.zeros(dim)
-    for i in range(dim):
-
-        d = copy[i, i]
-        diag[i] = d
-        copy[i, i] = 1
-
-        for j in range(i + 1, dim):
-            copy[i, j] = copy[i, j] / d
-
-        for j in range(i + 1, dim):
-            for k in range(i + 1, j):
-                copy[k, j] = copy[k, j] - copy[i, k] * copy[i, j]
-
-    return [copy, diag]
-
-
 def ldl(matrix):
     dim = np.shape(matrix)[0]
-    copy = np.copy(matrix)
-    diag = np.zeros(dim)
+    copy = np.copy(matrix).astype(float)
+    diag = np.zeros(dim).astype(float)
     for i in range(dim):
 
         d = copy[i, i]
         diag[i] = d
-        copy[i, i] = 1
+
+        copy[i] = copy[i] / d
 
         for j in range(i + 1, dim):
-            copy[i, j] = copy[i, j] / d
+            copy[j] = copy[j] - copy[j, i] * copy[i]
 
-        for j in range(i + 1, dim):
-            for k in range(i + 1, dim):
-                copy[j, k] = copy[j, k] - copy[i, i] * copy[j, k]
+        print(copy)
 
+    diag = np.diag(diag)
+    print(matrix)
+    print(copy.T @ diag @ copy)
     return [copy, diag]
 
 
