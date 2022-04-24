@@ -48,7 +48,6 @@ class Node:
 def noisy_bf_search(invcov, pivots):
     # notes - introduce inexact pivots
     n = np.shape(invcov)[0]
-    pivot_elements = list(np.diag(np.linalg.inv(pivots)))
     initial_children = [i for i in range(n) if True in [invcov[i, i] == piv for piv in pivots]]
     depth = 0
     node = Node(matrix=invcov, children=initial_children, permutation=np.eye(n))
