@@ -15,43 +15,6 @@ def sample_inverse_covariance(dag, noise_cov, N):
     return invcov
 
 
-def noisy_bf_search(invcov, noise):
-    # notes - introduce inexact pivots
-    n = np.shape(invcov)[0]
-    pivot_elements = list(np.diag(np.linalg.inv(noise)))
-    initial_children = [i for i in range(n) if True in [invcov[i, i] == piv for piv in pivot_elements]]
-    depth = 0
-    node = Node(matrix=invcov, children=pivot_elements, permutation=np.eye(n))
-    current_nodes = [node]
-    while depth < n:
-        new_current_nodes = []
-        for node in current_nodes:
-            for pivot in node.children:
-                # update matrix attribute by gaussian elimination and update pivots for next matrix derived from current
-                children_copy = node.children.copy()
-                children_copy.remove(node.matrix[pivot, pivot])
-
-                matrix = child_matrix(node.matrix, pivot, depth)
-
-                this_perm = np.eye(n)
-                this_perm[[depth, pivot]] = this_perm[[pivot, depth]]
-                new_perm = this_perm @ node.permutation
-
-                node = Node(matrix=matrix, children=children_copy, permutation=new_perm)
-                new_current_nodes.append(node)
-        current_nodes = new_current_nodes
-        depth += 1
-    return node
-
-
-class Node:
-    def __init__(self, matrix, children, parent, permutation=None):
-        self.matrix = matrix
-        self.children = children
-        self.parent = parent
-        self.permutation = permutation
-
-
 def ldl_child_matrix(matrix, ind, depth):
     # swaps rows and columns ind, depth and applies gaussian elimination
     dim = np.shape(matrix)[0]
@@ -72,6 +35,45 @@ def ldl_child_matrix(matrix, ind, depth):
         copy[j] = copy[j] - copy[j, i] * copy[i]
 
     return copy
+
+
+class Node:
+    def __init__(self, matrix, children, parent, permutation=None):
+        self.matrix = matrix
+        self.children = children
+        self.parent = parent
+        self.permutation = permutation
+
+
+def noisy_bf_search(invcov, pivots):
+    # notes - introduce inexact pivots
+    n = np.shape(invcov)[0]
+    pivot_elements = list(np.diag(np.linalg.inv(pivots)))
+    initial_children = [i for i in range(n) if True in [invcov[i, i] == piv for piv in pivots]]
+    depth = 0
+    node = Node(matrix=invcov, children=initial_children, permutation=np.eye(n))
+    current_nodes = [node]
+    while depth < n:
+        new_current_nodes = []
+        for node in current_nodes:
+            if node.children:
+                for index in node.children:
+                    # update matrix attribute by gaussian elimination and update pivots for next matrix derived from
+                    # current
+                    children_copy = node.children.copy()
+                    children_copy.remove(node.matrix[index, index])
+
+                    matrix = ldl_child_matrix(node.matrix, index, depth)
+
+                    this_perm = np.eye(n)
+                    this_perm[[depth, index]] = this_perm[[index, depth]]
+                    new_perm = this_perm @ node.permutation
+
+                    node = Node(matrix=matrix, children=children_copy, permutation=new_perm)
+                    new_current_nodes.append(node)
+        current_nodes = new_current_nodes
+        depth += 1
+    return current_nodes
 
 
 def ldl(matrix):
@@ -170,6 +172,10 @@ est = np.eye(n) - perm.T @ ans.matrix @ perm
 print('estimate')
 print(est)
 
+
+# check if it's a true LDL factorisation
+# print(ans.matrix.T @ perm @ np.diag(pivots) @ perm.T @ ans.matrix)
+# print(perm @ true_invcov @ perm.T)
 
 def recovered_dfs_noisy_dag_count(n, N, spar):
     # counts the number of permutation matrices that the dag_from_dfs method successfully recovers
