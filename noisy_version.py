@@ -135,7 +135,6 @@ def noisy_bf_search(A, pivots):  # note - rewrite this function with the Node cl
             if eligible_rows:
 
                 for ind in eligible_rows:
-
                     B_copy = np.copy(pair[0])
 
                     perm_copy = np.copy(pair[1])
@@ -169,7 +168,8 @@ def noisy_dag_from_dfs(invcov, pivots):
     # input: inverse covariance matrix
     # output: estimated DAG adjacency matrix A such that invcov = (I-A)^T (I-A)
     n = np.shape(invcov)[0]
-    perm = noisy_df_search(invcov, pivots).permutation
+    ans = noisy_df_search(invcov, pivots)
+    perm = ans.permutation
     estimate = np.eye(n) - perm.T @ ans.matrix @ perm
 
     return estimate
@@ -180,11 +180,7 @@ def noisy_dags_from_bfs(invcov, pivots):
     # output: estimated DAG adjacency matrices A such that invcov = (I-A)^T (I-A)
     n = np.shape(invcov)[0]
     pairs = noisy_bf_search(invcov, pivots)
-    for pair in pairs:
-        print('est')
-        print(np.eye(n) - pair[1].T @ pair[0] @ pair[1])
-        print('path')
-        print(pair[2])
+
     estimates = [np.eye(n) - pair[1].T @ pair[0] @ pair[1] for pair in pairs]
 
     return remove_duplicate_matrices(estimates)
@@ -192,6 +188,7 @@ def noisy_dags_from_bfs(invcov, pivots):
 
 n = 5
 spar = .75
+
 U = random_dag(n, spar)  # generates a random upper triangular matrix A
 rand_perm = np.random.permutation(n)
 P = np.eye(n)
@@ -207,16 +204,16 @@ print(pivots)
 print('DAG')
 print(dag)
 
-ans = noisy_dags_from_bfs(true_invcov, pivots)
-print('estimates')
-for est in ans:
-    print(est)
-
 ans = noisy_df_search(true_invcov, pivots)
 perm = ans.permutation
 est = np.eye(n) - perm.T @ ans.matrix @ perm
 print('estimate')
 print(est)
+
+ans = noisy_dags_from_bfs(true_invcov, pivots)
+print('estimates')
+for est in ans:
+    print(est)
 
 
 # check if it's a true LDL factorisation
@@ -241,7 +238,7 @@ def recovered_dfs_noisy_dag_count(n, N, spar):
         pivots = 1 / np.diag(noise_cov)
         eligible_mat = noisy_dag_from_dfs(invcov, pivots)
 
-        if ((eligible_mat - dag) < 1e-4).all():
+        if (abs(eligible_mat - dag) < 1e-4).all():
             count += 1
 
     return 'successfully recovered ' + str(count) + ' out of ' + str(N) + ' DAGs'
