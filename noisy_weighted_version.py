@@ -53,7 +53,7 @@ def noisy_df_search(invcov, pivots):
     return node
 
 
-def recovered_dfs_noisy_dag_count(n, N, spar):
+def recovered_dfs_noisy_weighted_dag_count(n, N, spar):
     # counts the number of permutation matrices that the dag_from_dfs method successfully recovers
     # arguments:
     # n: dimension of the DAGs considered (number of nodes)
