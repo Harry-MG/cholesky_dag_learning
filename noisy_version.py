@@ -1,6 +1,6 @@
 import numpy as np
 
-from utils import random_dag, child_matrix
+from utils import random_dag, child_matrix, remove_duplicate_matrices
 
 
 def sample_inverse_covariance(dag, noise_cov, N):
@@ -43,36 +43,6 @@ class Node:
         self.children = children
         self.parent = parent
         self.permutation = permutation
-
-
-def noisy_bf_search(invcov, pivots):
-    # notes - introduce inexact pivots
-    n = np.shape(invcov)[0]
-    initial_children = [i for i in range(n) if True in [invcov[i, i] == piv for piv in pivots]]
-    depth = 0
-    node = Node(matrix=invcov, children=initial_children, permutation=np.eye(n))
-    current_nodes = [node]
-    while depth < n:
-        new_current_nodes = []
-        for node in current_nodes:
-            if node.children:
-                for index in node.children:
-                    # update matrix attribute by gaussian elimination and update pivots for next matrix derived from
-                    # current
-                    children_copy = node.children.copy()
-                    children_copy.remove(node.matrix[index, index])
-
-                    matrix = ldl_child_matrix(node.matrix, index, depth)
-
-                    this_perm = np.eye(n)
-                    this_perm[[depth, index]] = this_perm[[index, depth]]
-                    new_perm = this_perm @ node.permutation
-
-                    node = Node(matrix=matrix, children=children_copy, permutation=new_perm)
-                    new_current_nodes.append(node)
-        current_nodes = new_current_nodes
-        depth += 1
-    return current_nodes
 
 
 def ldl(matrix):
@@ -123,7 +93,7 @@ def noisy_df_search(invcov, pivots):
             depth += 1
 
             new_children = [j for j in range(depth, n) if
-                            True in [(new_matrix[j, j] - pivot) < 1e-4 for pivot in pivots]]
+                            True in [abs(new_matrix[j, j] - pivot) < 1e-4 for pivot in pivots]]
             # new_pivots = [new_matrix[j] for j in new_children]
 
             # update the parent attribute to be the previous node but with the current matrix removed from its children
@@ -138,6 +108,63 @@ def noisy_df_search(invcov, pivots):
     return node
 
 
+def noisy_bf_search(A, pivots):  # note - rewrite this function with the Node class instead of list pairs
+    # returns permutations P of A such that the Cholesky factors of PAP^T have ones on the diagonal. Uses a
+    # breadth-first search
+
+    n = np.shape(A)[0]
+
+    i = 0
+
+    # use a copy version of A to avoid changing A while running the function
+    A_copy = np.copy(A)
+
+    # initialise [matrix, permutation, used_pivots] pair
+    current = [[A_copy, np.eye(n), []]]
+
+    while i < n:
+
+        new_current = []
+
+        for pair in current:
+
+            # get the indices of the rows that are in position i or greater and that have 1 on the diagonal
+            eligible_rows = [j for j in range(i, n) if True in [abs(pair[0][j, j] - pivot) < 1e-4 for pivot in pivots]]
+
+            # only proceed when B has at least one eligible row
+            if eligible_rows:
+
+                for ind in eligible_rows:
+
+                    B_copy = np.copy(pair[0])
+
+                    perm_copy = np.copy(pair[1])
+
+                    path_copy = pair[2].copy()
+
+                    # update the permutation matrix associated to the current tree
+                    this_perm = np.eye(n)
+                    this_perm[[i, ind]] = this_perm[[ind, i]]
+                    perm_copy = this_perm @ perm_copy
+
+                    # note that B[i, i] = 1 != 0 so it's never necessary to move on to the next row prematurely.
+                    # gaussian elimination step
+                    B_copy = ldl_child_matrix(B_copy, ind, i)
+
+                    path_copy.append(pair[0][ind, ind])
+
+                    # append B to current_matrices
+                    new_current.append([B_copy, perm_copy, path_copy])
+
+        # move on to the next row
+        i += 1
+
+        # update current matrices and permutations
+        current = new_current
+
+    return current
+
+
 def noisy_dag_from_dfs(invcov, pivots):
     # input: inverse covariance matrix
     # output: estimated DAG adjacency matrix A such that invcov = (I-A)^T (I-A)
@@ -146,6 +173,21 @@ def noisy_dag_from_dfs(invcov, pivots):
     estimate = np.eye(n) - perm.T @ ans.matrix @ perm
 
     return estimate
+
+
+def noisy_dags_from_bfs(invcov, pivots):
+    # input: inverse covariance matrix
+    # output: estimated DAG adjacency matrices A such that invcov = (I-A)^T (I-A)
+    n = np.shape(invcov)[0]
+    pairs = noisy_bf_search(invcov, pivots)
+    for pair in pairs:
+        print('est')
+        print(np.eye(n) - pair[1].T @ pair[0] @ pair[1])
+        print('path')
+        print(pair[2])
+    estimates = [np.eye(n) - pair[1].T @ pair[0] @ pair[1] for pair in pairs]
+
+    return remove_duplicate_matrices(estimates)
 
 
 n = 5
@@ -164,7 +206,12 @@ print('pivots')
 print(pivots)
 print('DAG')
 print(dag)
-print('df')
+
+ans = noisy_dags_from_bfs(true_invcov, pivots)
+print('estimates')
+for est in ans:
+    print(est)
+
 ans = noisy_df_search(true_invcov, pivots)
 perm = ans.permutation
 est = np.eye(n) - perm.T @ ans.matrix @ perm
