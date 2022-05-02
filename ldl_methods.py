@@ -1,40 +1,6 @@
 import numpy as np
 
-from utils import random_dag, child_matrix, remove_duplicate_matrices
-
-
-def sample_inverse_covariance(dag, noise_cov, N):
-    n = np.shape(dag)[0]
-    data = np.zeros((n, N))
-    for i in range(N):
-        noise = np.random.multivariate_normal(mean=np.zeros(n), cov=noise_cov)
-        X = np.linalg.inv(np.eye(n) - dag) @ noise
-        data[:, i] = X
-    covmat = np.cov(data)
-    invcov = np.linalg.inv(covmat)
-    return invcov
-
-
-def ldl_child_matrix(matrix, ind, depth):
-    # swaps rows and columns ind, depth and applies gaussian elimination
-    dim = np.shape(matrix)[0]
-    i = depth
-    copy = np.copy(matrix).astype(float)
-
-    # swap the rows to put desired row in pivot row
-    copy[[i, ind]] = copy[[ind, i]]
-
-    # swap the corresponding columns
-    copy[:, [i, ind]] = copy[:, [ind, i]]
-
-    d = copy[i, i]
-
-    copy[i] = copy[i] / d
-
-    for j in range(i + 1, dim):
-        copy[j] = copy[j] - copy[j, i] * copy[i]
-
-    return copy
+from utils import random_dag, remove_duplicate_matrices, ldl_child_matrix
 
 
 class Node:
@@ -43,28 +9,6 @@ class Node:
         self.children = children
         self.parent = parent
         self.permutation = permutation
-
-
-def ldl(matrix):
-    dim = np.shape(matrix)[0]
-    copy = np.copy(matrix).astype(float)
-    diag = np.zeros(dim).astype(float)
-    for i in range(dim):
-
-        d = copy[i, i]
-        diag[i] = d
-
-        copy[i] = copy[i] / d
-
-        for j in range(i + 1, dim):
-            copy[j] = copy[j] - copy[j, i] * copy[i]
-
-        print(copy)
-
-    diag = np.diag(diag)
-    print(matrix)
-    print(copy.T @ diag @ copy)
-    return [copy, diag]
 
 
 def noisy_df_search(invcov, pivots):
@@ -184,61 +128,3 @@ def noisy_dags_from_bfs(invcov, pivots):
     estimates = [np.eye(n) - pair[1].T @ pair[0] @ pair[1] for pair in pairs]
 
     return remove_duplicate_matrices(estimates)
-
-
-n = 5
-spar = .75
-
-U = random_dag(n, spar)  # generates a random upper triangular matrix A
-rand_perm = np.random.permutation(n)
-P = np.eye(n)
-P[list(range(n))] = P[list(rand_perm)]
-dag = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
-noise_cov = .1 * np.diag(np.random.rand(n))  # diagonal as in the setup in Uhler paper
-true_invcov = (np.eye(n) - dag).T @ np.linalg.inv(noise_cov) @ (np.eye(n) - dag)
-print('inverse covariance')
-print(true_invcov)
-pivots = 1 / np.diag(noise_cov)
-print('pivots')
-print(pivots)
-print('DAG')
-print(dag)
-
-ans = noisy_df_search(true_invcov, pivots)
-perm = ans.permutation
-est = np.eye(n) - perm.T @ ans.matrix @ perm
-print('estimate')
-print(est)
-
-ans = noisy_dags_from_bfs(true_invcov, pivots)
-print('estimates')
-for est in ans:
-    print(est)
-
-
-# check if it's a true LDL factorisation
-# print(ans.matrix.T @ perm @ np.diag(pivots) @ perm.T @ ans.matrix)
-# print(perm @ true_invcov @ perm.T)
-
-def recovered_dfs_noisy_dag_count(n, N, spar):
-    # counts the number of permutation matrices that the dag_from_dfs method successfully recovers
-    # arguments:
-    # n: dimension of the DAGs considered (number of nodes)
-    # N: number of samples
-    # spar: sparsity of the upper triangular part of the upper triangular DAG adjacency matrix
-    count = 0
-    for i in range(N):
-        U = random_dag(n, spar)  # generates a random upper triangular matrix A
-        rand_perm = np.random.permutation(n)
-        P = np.eye(n)
-        P[list(range(n))] = P[list(rand_perm)]
-        dag = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
-        noise_cov = .1 * np.diag(np.random.rand(n))  # diagonal as in the setup in Uhler paper
-        invcov = (np.eye(n) - dag).T @ np.linalg.inv(noise_cov) @ (np.eye(n) - dag)
-        pivots = 1 / np.diag(noise_cov)
-        eligible_mat = noisy_dag_from_dfs(invcov, pivots)
-
-        if (abs(eligible_mat - dag) < 1e-4).all():
-            count += 1
-
-    return 'successfully recovered ' + str(count) + ' out of ' + str(N) + ' DAGs'

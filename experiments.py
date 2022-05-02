@@ -3,8 +3,9 @@ import time
 
 from matplotlib import pyplot as plt
 
-from methods import dags_from_bfs, dag_from_dfs
-from utils import random_dag
+from cholesky_methods import dags_from_bfs, dag_from_dfs
+from ldl_methods import noisy_dag_from_dfs
+from utils import random_dag, random_weighted_dag
 
 
 def recovered_bfs_dag_count(n, N, spar):
@@ -52,6 +53,54 @@ def recovered_dfs_dag_count(n, N, spar):
         eligible_mat = dag_from_dfs(invcov)
 
         if (eligible_mat == A).all():
+            count += 1
+
+    return 'successfully recovered ' + str(count) + ' out of ' + str(N) + ' DAGs'
+
+
+def recovered_dfs_noisy_dag_count(n, N, spar):
+    # counts the number of permutation matrices that the dag_from_dfs method successfully recovers
+    # arguments:
+    # n: dimension of the DAGs considered (number of nodes)
+    # N: number of samples
+    # spar: sparsity of the upper triangular part of the upper triangular DAG adjacency matrix
+    count = 0
+    for i in range(N):
+        U = random_dag(n, spar)  # generates a random upper triangular matrix A
+        rand_perm = np.random.permutation(n)
+        P = np.eye(n)
+        P[list(range(n))] = P[list(rand_perm)]
+        dag = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
+        noise_cov = .1 * np.diag(np.random.rand(n))  # diagonal as in the setup in Uhler paper
+        invcov = (np.eye(n) - dag).T @ np.linalg.inv(noise_cov) @ (np.eye(n) - dag)
+        pivots = 1 / np.diag(noise_cov)
+        eligible_mat = noisy_dag_from_dfs(invcov, pivots)
+
+        if (abs(eligible_mat - dag) < 1e-4).all():
+            count += 1
+
+    return 'successfully recovered ' + str(count) + ' out of ' + str(N) + ' DAGs'
+
+
+def recovered_dfs_noisy_weighted_dag_count(n, N, spar):
+    # counts the number of permutation matrices that the dag_from_dfs method successfully recovers
+    # arguments:
+    # n: dimension of the DAGs considered (number of nodes)
+    # N: number of samples
+    # spar: sparsity of the upper triangular part of the upper triangular DAG adjacency matrix
+    count = 0
+    for i in range(N):
+        U = random_weighted_dag(n, spar)  # generates a random upper triangular matrix A
+        rand_perm = np.random.permutation(n)
+        P = np.eye(n)
+        P[list(range(n))] = P[list(rand_perm)]
+        dag = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
+        noise_cov = .1 * np.diag(np.random.rand(n))  # diagonal as in the setup in Uhler paper
+        invcov = (np.eye(n) - dag).T @ np.linalg.inv(noise_cov) @ (np.eye(n) - dag)
+        pivots = 1 / np.diag(noise_cov)
+        eligible_mat = noisy_dag_from_dfs(invcov, pivots)
+
+        if (abs(eligible_mat - dag) < 1e-4).all():
             count += 1
 
     return 'successfully recovered ' + str(count) + ' out of ' + str(N) + ' DAGs'
@@ -119,3 +168,30 @@ def speed_of_method(dims, N, spar, method):
     plt.ylabel('average runtime (s) over ' + str(N) + ' samples')
     plt.show()
     print(np.sum(times))
+
+
+def sample_inverse_covariance(dag, noise_cov, N):
+    n = np.shape(dag)[0]
+    data = np.zeros((n, N))
+    for i in range(N):
+        noise = np.random.multivariate_normal(mean=np.zeros(n), cov=noise_cov)
+        X = np.linalg.inv(np.eye(n) - dag) @ noise
+        data[:, i] = X
+    covmat = np.cov(data)
+    invcov = np.linalg.inv(covmat)
+    return invcov
+
+
+n = 5
+spar = .75
+N = 100
+U = random_dag(n, spar)  # generates a random upper triangular matrix A
+rand_perm = np.random.permutation(n)
+P = np.eye(n)
+P[list(range(n))] = P[list(rand_perm)]
+dag = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
+noise_cov = .1 * np.diag(np.random.rand(n))
+print('true_invcov')
+print((np.eye(n) - dag).T @ np.linalg.inv(noise_cov) @ (np.eye(n) - dag))
+print('sample_invcov')
+print(sample_inverse_covariance(dag, noise_cov, N))

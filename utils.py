@@ -31,72 +31,26 @@ def random_dag(dim, sparsity):
     return A
 
 
-def bf_search(A):  # note - rewrite this function with the Node class instead of list pairs
-    # returns permutations P of A such that the Cholesky factors of PAP^T have ones on the diagonal. Uses a
-    # breadth-first search
+def random_weighted_dag(dim, sparsity):
+    # generates random  non-binary upper triangular matrix with given upper triangular sparsity, representing the
+    # weighted adjacency matrix of a DAG
 
-    n = np.shape(A)[0]
+    A = np.random.rand(dim, dim)  # threshold the matrix entries in [.1, .9]
 
-    i = 0
+    A = A + (0.1 / (0.9 - 0.1)) * np.ones((dim, dim))
 
-    # use a copy version of A to avoid changing A while running the function
-    A_copy = np.copy(A)
+    A = A * (0.9 - 0.1)
 
-    # initialise [matrix, permutation] pair
-    current = [[A_copy, np.eye(n)]]
+    zero_indices = np.random.choice(np.arange(A.size), replace=False,
+                                    size=int(A.size * sparsity))
 
-    while i < n:
+    A[np.unravel_index(zero_indices, A.shape)] = 0
 
-        new_current = []
+    A = np.transpose(np.tril(A))
 
-        for pair in current:
+    A = A - np.diag(np.diag(A))
 
-            # get the indices of the rows that are in position i or greater and that have 1 on the diagonal
-            eligible_rows = [j for j in range(i, n) if pair[0][j, j] == 1]
-
-            # only proceed when B has at least one eligible row
-            if eligible_rows:
-
-                for ind in eligible_rows:
-
-                    B_copy = np.copy(pair[0])
-
-                    perm_copy = np.copy(pair[1])
-
-                    # swap the rows to put desired row in pivot row
-                    B_copy[[i, ind]] = B_copy[[ind, i]]
-
-                    # swap the corresponding columns
-                    B_copy[:, [i, ind]] = B_copy[:, [ind, i]]
-
-                    # update the permutation matrix associated to the current tree
-                    this_perm = np.eye(n)
-                    this_perm[[i, ind]] = this_perm[[ind, i]]
-                    perm_copy = this_perm @ perm_copy
-
-                    # note that B[i, i] = 1 != 0 so it's never necessary to move on to the next row prematurely.
-                    # gaussian elimination step
-                    for j in range(i + 1, n):
-
-                        f = B_copy[j, i] / B_copy[i, i]
-
-                        B_copy[j, i] = 0
-
-                        for k in range(i + 1, n):
-                            B_copy[j, k] = B_copy[j, k] - B_copy[i, k] * f
-
-                    # append B to current_matrices
-                    new_current.append([B_copy, perm_copy])
-
-        # move on to the next row
-        i += 1
-
-        # update current matrices and permutations
-        current = new_current
-
-    eligible_perms = [pair[1] for pair in current]
-
-    return eligible_perms
+    return A
 
 
 def remove_duplicate_matrices(list_of_matrices):
@@ -108,14 +62,6 @@ def remove_duplicate_matrices(list_of_matrices):
     lst = list(map(list, tupled_vecs))
 
     return [np.array(arr).reshape(n, n) for arr in lst]
-
-
-class Node:
-    def __init__(self, matrix, children, parent, permutation=None):
-        self.matrix = matrix
-        self.children = children
-        self.parent = parent
-        self.permutation = permutation
 
 
 def child_matrix(matrix, ind, depth):
@@ -144,40 +90,45 @@ def child_matrix(matrix, ind, depth):
     return copy
 
 
-def df_search(invcov):  # note - could speed up by stopping early when the diagonal is all ones
-    # returns Node class whose permutation attribute P such that the Cholesky factor of P@invcov@P.T has ones on its
-    # diagonal. Uses a depth-first search.
-    n = np.shape(invcov)[0]
-    depth = 0  # need to track depth in tree as we need to complete n passes of the matrix
-    initial_children = [j for j in range(depth, n) if invcov[j, j] == 1]
-    # initialise node instance with the inverse covariance matrix
-    node = Node(matrix=invcov, children=initial_children, parent=None, permutation=np.eye(n))
-    while depth < n:
-        if node.children:
-            # update children to exclude first child and pass to first child, increase depth by 1
-            index = node.children[0]
+def ldl(matrix):
+    dim = np.shape(matrix)[0]
+    copy = np.copy(matrix).astype(float)
+    diag = np.zeros(dim).astype(float)
+    for i in range(dim):
 
-            # update the permutation matrix
-            this_perm = np.eye(n)
-            this_perm[[depth, index]] = this_perm[[index, depth]]
-            new_perm = this_perm @ node.permutation
+        d = copy[i, i]
+        diag[i] = d
 
-            # update the matrix and children attributes
-            parent_children = node.children[1:]
-            node.children = parent_children
-            new_matrix = child_matrix(node.matrix, index, depth)
+        copy[i] = copy[i] / d
 
-            depth += 1
+        for j in range(i + 1, dim):
+            copy[j] = copy[j] - copy[j, i] * copy[i]
 
-            new_children = [j for j in range(depth, n) if (new_matrix[j, j] - 1) < 1e-4]
+        print(copy)
 
-            # update the parent attribute to be the previous node but with the current matrix removed from its children
-            new_parent = node
+    diag = np.diag(diag)
+    print(matrix)
+    print(copy.T @ diag @ copy)
+    return [copy, diag]
 
-            node = Node(matrix=new_matrix, children=new_children, parent=new_parent, permutation=new_perm)
 
-        else:
-            # go back to previous node and decrease depth by 1
-            node = node.parent
-            depth -= 1
-    return node
+def ldl_child_matrix(matrix, ind, depth):
+    # swaps rows and columns ind, depth and applies gaussian elimination
+    dim = np.shape(matrix)[0]
+    i = depth
+    copy = np.copy(matrix).astype(float)
+
+    # swap the rows to put desired row in pivot row
+    copy[[i, ind]] = copy[[ind, i]]
+
+    # swap the corresponding columns
+    copy[:, [i, ind]] = copy[:, [ind, i]]
+
+    d = copy[i, i]
+
+    copy[i] = copy[i] / d
+
+    for j in range(i + 1, dim):
+        copy[j] = copy[j] - copy[j, i] * copy[i]
+
+    return copy
