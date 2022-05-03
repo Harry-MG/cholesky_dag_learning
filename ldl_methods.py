@@ -1,6 +1,6 @@
 import numpy as np
 
-from utils import random_dag, remove_duplicate_matrices, ldl_child_matrix
+from utils import remove_duplicate_matrices, ldl_child_matrix
 
 
 class Node:
@@ -12,8 +12,16 @@ class Node:
 
 
 def noisy_df_search(invcov, pivots):
-    # returns Node class whose permutation attribute P such that the Cholesky factor of P@invcov@P.T has ones on its
-    # diagonal. Uses a depth-first search.
+    """
+    depth-first search for a permutation P such that the lower triangular LDL factor 'L' of P @ invcov@ P^T
+    has ones on its diagonal
+
+        Args:
+            invcov (np.ndarray): true inverse covariance matrix from linear SEM X = AX + Z (noise matrix arbitrary)
+
+        Returns:
+            node (Node class): Node class node such that node.permutation satisfies the above criteria
+    """
     n = np.shape(invcov)[0]
     depth = 0  # need to track depth in tree as we need to complete n passes of the matrix
     initial_children = [i for i in range(n) if True in [invcov[i, i] == pivot for pivot in pivots]]
@@ -53,8 +61,16 @@ def noisy_df_search(invcov, pivots):
 
 
 def noisy_bf_search(A, pivots):  # note - rewrite this function with the Node class instead of list pairs
-    # returns permutations P of A such that the Cholesky factors of PAP^T have ones on the diagonal. Uses a
-    # breadth-first search
+    """
+    breadth-first search for all permutations P such that the lower triangular LDL factor 'L' of P @ invcov@ P^T has
+    ones on its diagonal
+
+     Args:
+         A (np.ndarray): true inverse covariance matrix from linear SEM (noise matrix identity)
+
+     Returns:
+         current (tuple): tuple [matrix, perm] such that perm satisfies the criteria above
+     """
 
     n = np.shape(A)[0]
 
@@ -109,8 +125,15 @@ def noisy_bf_search(A, pivots):  # note - rewrite this function with the Node cl
 
 
 def noisy_dag_from_dfs(invcov, pivots):
-    # input: inverse covariance matrix
-    # output: estimated DAG adjacency matrix A such that invcov = (I-A)^T (I-A)
+    """
+    DAG estimate from inverse covariance matrix using df_search
+
+    Args:
+        invcov (np.ndarray): true inverse covariance matrix from linear SEM X = AX + Z (noise matrix arbitrary)
+
+    Returns:
+        estimate (np.ndarray): DAG estimate
+    """
     n = np.shape(invcov)[0]
     ans = noisy_df_search(invcov, pivots)
     perm = ans.permutation
@@ -120,8 +143,15 @@ def noisy_dag_from_dfs(invcov, pivots):
 
 
 def noisy_dags_from_bfs(invcov, pivots):
-    # input: inverse covariance matrix
-    # output: estimated DAG adjacency matrices A such that invcov = (I-A)^T (I-A)
+    """
+    DAG estimate(s) from inverse covariance matrix using bf_search
+
+    Args:
+        invcov (np.ndarray): true inverse covariance matrix from linear SEM X = AX + Z (noise matrix arbitrary)
+
+    Returns:
+        (list): list of possible DAG estimates from the search
+    """
     n = np.shape(invcov)[0]
     pairs = noisy_bf_search(invcov, pivots)
 

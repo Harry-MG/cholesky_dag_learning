@@ -10,8 +10,18 @@ def nonzeros(v):
 
 
 def random_dag(dim, sparsity):
-    # generates random upper triangular matrix with given upper triangular sparsity,representing the weighted
-    # adjacency matrix of a DAG
+    """
+    Generates random binary upper triangular matrix with given upper triangular sparsity, representing the
+    adjacency matrix of a DAG
+
+    Args:
+        dim (int): dimension of matrix / number of nodes in DAG.
+        sparsity (float): expected sparsity of upper triangular part. in (0, 1).
+
+     Returns:
+        dag (np.ndarray): adjacency matrix of a dag
+
+    """
 
     A = np.random.rand(dim, dim)
 
@@ -32,8 +42,18 @@ def random_dag(dim, sparsity):
 
 
 def random_weighted_dag(dim, sparsity):
-    # generates random  non-binary upper triangular matrix with given upper triangular sparsity, representing the
-    # weighted adjacency matrix of a DAG
+    """
+    Generate random weighted (weights in (.1, .9)) upper triangular matrix with given upper triangular sparsity,
+    representing the adjacency matrix of a DAG
+
+    Args:
+        dim (int): dimension of matrix / number of nodes in DAG.
+        sparsity (float): expected sparsity of upper triangular part. in (0, 1).
+
+    Returns:
+        dag (np.ndarray): weighted adjacency matrix of a dag
+
+    """
 
     A = np.random.rand(dim, dim)  # threshold the matrix entries in [.1, .9]
 
@@ -54,8 +74,16 @@ def random_weighted_dag(dim, sparsity):
 
 
 def remove_duplicate_matrices(list_of_matrices):
-    # input: list of matrices as square numpy arrays of the same size, possibly with repeats
-    # output: list of matrices with repeats removed
+    """
+    Remove duplicates from a list of matrices (np.ndarrays) to leave one representative for each equality class
+
+    Args:
+        list_of_matrices (list): list of np.ndarrays of same dimension
+
+    Returns:
+        lst (list): list of np.ndarrays as described
+
+    """
     n = np.shape(list_of_matrices[0])[0]
     matrices_as_vecs = [list(mat.flatten()) for mat in list_of_matrices]
     tupled_vecs = set(map(tuple, matrices_as_vecs))
@@ -65,7 +93,17 @@ def remove_duplicate_matrices(list_of_matrices):
 
 
 def child_matrix(matrix, ind, depth):
-    # swaps rows and columns ind, depth and applies gaussian elimination
+    """
+    Swap rows and columns ind and depth of matrix and apply row reduction pivoting with row ind
+
+    Args:
+        matrix (np.ndarray): matrix to be reduced
+        ind (int): index of one row
+        depth (int): index of other row
+
+    Returns:
+        child_matrix (np.ndarray): resulting matrix
+    """
     n = np.shape(matrix)[0]
     i = depth
     copy = np.copy(matrix)
@@ -91,6 +129,15 @@ def child_matrix(matrix, ind, depth):
 
 
 def ldl(matrix):
+    """
+    Perform LDL decomposition on matrix
+
+    Args:
+        matrix (np.ndarray): matrix to be decomposed
+
+    Returns:
+        [L, D] (tuple): L (np.ndarray) lower triangular and D (np.ndarray) diagonal such that matrix = LDL^T
+    """
     dim = np.shape(matrix)[0]
     copy = np.copy(matrix).astype(float)
     diag = np.zeros(dim).astype(float)
@@ -113,7 +160,17 @@ def ldl(matrix):
 
 
 def ldl_child_matrix(matrix, ind, depth):
-    # swaps rows and columns ind, depth and applies gaussian elimination
+    """
+    Swap rows and columns ind and depth of matrix and apply row reduction pivoting with row ind
+
+    Args:
+        matrix (np.ndarray): matrix to be reduced
+        ind (int): index of one row
+        depth (int): index of other row
+
+    Returns:
+        child_matrix (np.ndarray): resulting matrix
+    """
     dim = np.shape(matrix)[0]
     i = depth
     copy = np.copy(matrix).astype(float)
