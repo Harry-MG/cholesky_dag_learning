@@ -168,30 +168,3 @@ def speed_of_method(dims, N, spar, method):
     plt.ylabel('average runtime (s) over ' + str(N) + ' samples')
     plt.show()
     print(np.sum(times))
-
-
-def sample_inverse_covariance(dag, noise_cov, N):
-    n = np.shape(dag)[0]
-    data = np.zeros((n, N))
-    for i in range(N):
-        noise = np.random.multivariate_normal(mean=np.zeros(n), cov=noise_cov)
-        X = np.linalg.inv(np.eye(n) - dag) @ noise
-        data[:, i] = X
-    covmat = np.cov(data)
-    invcov = np.linalg.inv(covmat)
-    return invcov
-
-
-n = 5
-spar = .75
-N = 100
-U = random_dag(n, spar)  # generates a random upper triangular matrix A
-rand_perm = np.random.permutation(n)
-P = np.eye(n)
-P[list(range(n))] = P[list(rand_perm)]
-dag = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
-noise_cov = .1 * np.diag(np.random.rand(n))
-print('true_invcov')
-print((np.eye(n) - dag).T @ np.linalg.inv(noise_cov) @ (np.eye(n) - dag))
-print('sample_invcov')
-print(sample_inverse_covariance(dag, noise_cov, N))

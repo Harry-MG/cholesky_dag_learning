@@ -189,3 +189,27 @@ def ldl_child_matrix(matrix, ind, depth):
         copy[j] = copy[j] - copy[j, i] * copy[i]
 
     return copy
+
+
+def sample_inverse_covariance(dag, noise_cov, N):
+    """
+    Produce sample inverse covariance matrix from samples of linear SEM X = AX + Z
+
+    Args:
+        dag (np.ndarray): DAG adjacency matrix A in the linear SEM
+        noise_cov (np.ndarray): diagonal noise covariance matrix Z
+        N (int): number of samples of the SEM used to produce the sample matrix
+
+    Returns:
+        invcov (np.ndarray): resulting sample inverse covariance matrix
+    """
+    n = np.shape(dag)[0]
+    data = np.zeros((n, N))
+    for i in range(N):
+        noise = np.random.multivariate_normal(mean=np.zeros(n), cov=noise_cov)
+        X = np.linalg.inv(np.eye(n) - dag) @ noise
+        data[:, i] = X
+    covmat = np.cov(data)
+    invcov = np.linalg.inv(covmat)
+
+    return invcov

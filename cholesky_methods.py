@@ -43,7 +43,7 @@ def df_search(invcov):  # note - could speed up by stopping early when the diago
 
             depth += 1
 
-            new_children = [j for j in range(depth, n) if (new_matrix[j, j] - 1) < 1e-4]
+            new_children = [j for j in range(depth, n) if abs(new_matrix[j, j] - 1) < 1e-4]
 
             # update the parent attribute to be the previous node but with the current matrix removed from its children
             new_parent = node
