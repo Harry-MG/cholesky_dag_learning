@@ -1,6 +1,7 @@
 import numpy as np
 import sklearn.covariance
 import matplotlib.pyplot as plt
+import time
 
 from utils import child_matrix, sample_covariance, random_dag, random_weighted_dag
 
@@ -208,15 +209,14 @@ print(np.linalg.norm((dag - dag_est), 1)/dim**2)
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-dims = [6, 9, 12, 15]
+dims = [20]
 runs_per_dim = 10
 nsamples = 1000
 SHDs = []
 for dim in dims:
-    print('dim ='+str(dim))
+    print('dim = '+str(dim))
     dim_SHDs = []
     for n in range(runs_per_dim):
-        print(n)
         U = random_dag(dim, 0.75)  # generates a random upper triangular matrix A
         rand_perm = np.random.permutation(dim)
         P = np.eye(dim)
@@ -226,9 +226,16 @@ for dim in dims:
         S = sample_covariance(dag, np.eye(dim), nsamples)
         Sinv = np.linalg.inv(S)
 
+        t = time.time()
+
         pivot_tol = tol_search(Sinv, 0.01, 0.01)
 
         dag_est = inexact_dag_est(Sinv, pivot_tol)
+
+        t_tot = time.time() - t
+
+        print(n)
+        print('time taken = '+str(t_tot))
 
         SHD = np.linalg.norm((dag - dag_est), 1) / dim ** 2
 
