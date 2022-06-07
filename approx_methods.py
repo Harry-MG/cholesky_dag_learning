@@ -2,7 +2,7 @@ import numpy as np
 import sklearn.covariance
 import matplotlib.pyplot as plt
 
-from utils import child_matrix, sample_covariance, random_dag
+from utils import child_matrix, sample_covariance, random_dag, random_weighted_dag
 
 
 class Node:
@@ -83,6 +83,7 @@ print(glasso_invcov)
 
 
 def inexact_dag_est(invcov_est, pivot_tol):
+    n = np.shape(invcov_est)[0]
     node_ans = inexact_df_search(invcov_est, pivot_tol)
     perm = node_ans.permutation
 
@@ -158,29 +159,6 @@ plt.plot(sample_list, max_tols)
 plt.show()
 
 
-dim = 5
-nsamples = 1000
-U = random_dag(dim, 0.75)  # generates a random upper triangular matrix A
-rand_perm = np.random.permutation(dim)
-P = np.eye(dim)
-P[list(range(dim))] = P[list(rand_perm)]
-dag = P @ U @ np.transpose(P)
-
-S = sample_covariance(dag, np.eye(dim), nsamples)
-Sinv = np.linalg.inv(S)
-
-pivot_tol = tol_search(Sinv, 0.01, 0.01)
-
-dag_est = inexact_dag_est(Sinv, pivot_tol)
-
-print('true DAG')
-print(dag)
-print('DAG estimate')
-print(dag_est)
-print('SHD')
-print(np.linalg.norm((dag - dag_est), 1)/dim**2)
-
-
 def SHD_hist(dim, nsamples, runs):
     SHD_list = []
     for n in range(runs):
@@ -205,3 +183,55 @@ def SHD_hist(dim, nsamples, runs):
 
     return SHD_list
 
+
+dim = 5
+nsamples = 1000
+U = random_weighted_dag(dim, 0.75)  # generates a random upper triangular matrix A
+rand_perm = np.random.permutation(dim)
+P = np.eye(dim)
+P[list(range(dim))] = P[list(rand_perm)]
+dag = P @ U @ np.transpose(P)
+
+S = sample_covariance(dag, np.eye(dim), nsamples)
+Sinv = np.linalg.inv(S)
+
+pivot_tol = tol_search(Sinv, 0.01, 0.01)
+
+dag_est = inexact_dag_est(Sinv, pivot_tol)
+
+print('true DAG')
+print(dag)
+print('DAG estimate')
+print(dag_est)
+print('SHD')
+print(np.linalg.norm((dag - dag_est), 1)/dim**2)
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+dims = [6, 9, 12, 15]
+runs_per_dim = 10
+nsamples = 1000
+SHDs = []
+for dim in dims:
+    print('dim ='+str(dim))
+    dim_SHDs = []
+    for n in range(runs_per_dim):
+        print(n)
+        U = random_dag(dim, 0.75)  # generates a random upper triangular matrix A
+        rand_perm = np.random.permutation(dim)
+        P = np.eye(dim)
+        P[list(range(dim))] = P[list(rand_perm)]
+        dag = P @ U @ np.transpose(P)
+
+        S = sample_covariance(dag, np.eye(dim), nsamples)
+        Sinv = np.linalg.inv(S)
+
+        pivot_tol = tol_search(Sinv, 0.01, 0.01)
+
+        dag_est = inexact_dag_est(Sinv, pivot_tol)
+
+        SHD = np.linalg.norm((dag - dag_est), 1) / dim ** 2
+
+        dim_SHDs.append(SHD)
+
+    SHDs.append(np.mean(dim_SHDs))
