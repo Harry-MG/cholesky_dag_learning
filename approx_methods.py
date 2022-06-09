@@ -209,7 +209,7 @@ print(np.linalg.norm((dag - dag_est), 1)/dim**2)
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-dims = [20]
+dims = [16]
 runs_per_dim = 10
 nsamples = 1000
 SHDs = []
@@ -236,9 +236,35 @@ for dim in dims:
 
         print(n)
         print('time taken = '+str(t_tot))
+        print('pivot_tol = '+str(pivot_tol))
 
         SHD = np.linalg.norm((dag - dag_est), 1) / dim ** 2
 
         dim_SHDs.append(SHD)
 
     SHDs.append(np.mean(dim_SHDs))
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+# Compare np.cov and normalising the scatter matrix
+
+def mod_tol_search_list(dim, samples, runs):
+    tols = np.zeros(runs)
+    for N in range(runs):
+        U = random_dag(dim, 0.75)  # generates a random upper triangular matrix A
+        rand_perm = np.random.permutation(dim)
+        P = np.eye(dim)
+        P[list(range(dim))] = P[list(rand_perm)]
+        dag = P @ U @ np.transpose(P)  # now A represents a DAG not necessarily in topological order
+        # noise_cov = .1 * np.diag(np.random.rand(n))
+        noise_cov = np.eye(dim)
+        sample_invcov = np.linalg.inv(((samples-1)/(samples-dim-1)) * sample_covariance(dag, noise_cov, samples))
+        tols[N] = tol_search(sample_invcov, 0.01, 0.01)
+    return(tols)
+
+
+tol_list = tol_search_list(5, 1000, 100)
+mod_tol_list = mod_tol_search_list(5, 1000, 100)
+plt.hist(tol_list, alpha=.7, label='non-sparse')
+plt.hist(mod_tol_list, alpha=.7, label='mod')
+plt.legend(loc='upper right')
+plt.show()
