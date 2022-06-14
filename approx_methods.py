@@ -153,8 +153,9 @@ plt.show()
 sample_list = [10, 50, 100, 500, 1000, 5000]
 max_tols = []
 for n_samples in sample_list:
-    tol_list = tol_search_list(dim=5, samples=n_samples, runs=1000)
+    tol_list = tol_search_list(dim=5, samples=n_samples, runs=100)
     max_tols.append(max(tol_list))
+    print('done ' + str(n_samples))
 
 plt.plot(sample_list, max_tols)
 plt.show()
@@ -209,8 +210,8 @@ print(np.linalg.norm((dag - dag_est), 1)/dim**2)
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-dims = [16]
-runs_per_dim = 10
+dims = [5, 7, 9, 11, 13]
+runs_per_dim = 100
 nsamples = 1000
 SHDs = []
 for dim in dims:
