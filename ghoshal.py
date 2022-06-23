@@ -1,6 +1,5 @@
 import numpy as np
 import torch as torch
-
 from utils import random_dag, random_weighted_dag, sample_covariance
 
 
