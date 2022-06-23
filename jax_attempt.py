@@ -6,7 +6,6 @@ from utils import random_dag
 
 n = 5
 N = 1000
-
 U = random_dag(n, 0.75)  # generates a random upper triangular matrix A
 rand_perm = np.random.permutation(n)
 P = np.eye(n)
